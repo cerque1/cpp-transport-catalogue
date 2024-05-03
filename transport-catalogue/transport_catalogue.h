@@ -8,8 +8,8 @@
 
 #include "geo.h"
 
-namespace transport_catalogue{
-	struct Stop{
+namespace transport_catalogue {
+	struct Stop {
 		std::string name;
 		geography::Coordinates coordinates;
 
@@ -22,7 +22,7 @@ namespace transport_catalogue{
 		}
 	};
 
-	struct Bus{
+	struct Bus {
 		std::string name;
 		std::deque<const Stop*> stops;
 
@@ -33,19 +33,15 @@ namespace transport_catalogue{
 		bool operator==(const Bus& bus) const{
 			return bus.name == name && std::equal(stops.begin(), stops.end(), bus.stops.begin(), bus.stops.end());
 		}
-
-		bool operator<(const Bus& bus) const{
-			return name < bus.name;
-		}
 	};
 
-	struct BusInfo{
-		int R;
-		int U;
-		double L; 
+	struct BusInfo {
+		int stops_route;
+		int unique_stops;
+		double length; 
 
 		bool operator==(const BusInfo& info){
-			return std::tie(info.L, info.R, info.U) == std::tie(L, R, U);
+			return std::tie(info.length, info.stops_route, info.unique_stops) == std::tie(length, stops_route, unique_stops);
 		}
 	};
 
@@ -53,9 +49,9 @@ namespace transport_catalogue{
 	public:
 		TransportCatalogue() = default;
 
-		void AddStop(std::string name, geography::Coordinates coord);
+		void AddStop(const std::string& name, geography::Coordinates coord);
 
-		void AddBus(std::string name, const std::vector<std::string_view>& stops_name);
+		void AddBus(const std::string& name, const std::vector<std::string_view>& stops_name);
 
 		const Bus* FindBus(std::string_view name) const;
 
@@ -63,7 +59,7 @@ namespace transport_catalogue{
 
 		const BusInfo GetInfo(std::string_view name) const;
 
-		const std::pair<std::string_view, std::vector<std::string_view>> GetStopInfo(std::string_view name) const;
+		const std::vector<std::string_view> GetStopInfo(std::string_view name) const;
 	private:
 		std::deque<Stop> stops_;
 		std::deque<Bus> buses_;

@@ -7,8 +7,8 @@
 #include <iostream>
 
 
-namespace input_reader{
-    namespace details{
+namespace input_reader {
+    namespace details {
         /**
          * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
          */
@@ -115,13 +115,29 @@ namespace input_reader{
     }
 
     void InputReader::ApplyCommands([[maybe_unused]] transport_catalogue::TransportCatalogue& catalogue) const {
-        for(auto i : commands_){
-            if(i.command == "Stop"){
-                catalogue.AddStop(i.id, details::ParseCoordinates(i.description));
+        for(auto command : commands_){
+            if(command.command == "Stop"){
+                catalogue.AddStop(command.id, details::ParseCoordinates(command.description));
             }
-            else if(i.command == "Bus"){
-                catalogue.AddBus(i.id, details::ParseRoute(i.description));
+            else if(command.command == "Bus"){
+                catalogue.AddBus(command.id, details::ParseRoute(command.description));
             }
+        }
+    }
+
+    void Read(std::istream& in, transport_catalogue::TransportCatalogue catalogue){
+        int base_request_count;
+        in >> base_request_count >> std::ws;
+
+        {
+            input_reader::InputReader reader;
+            for (int i = 0; i < base_request_count; ++i) {
+                std::string line;
+                std::getline(in, line);
+                reader.ParseLine(line);
+            }
+            reader.SortCommands();
+            reader.ApplyCommands(catalogue);
         }
     }
 }

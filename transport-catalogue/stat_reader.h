@@ -6,5 +6,9 @@
 #include "transport_catalogue.h"
 #include "geo.h"
 
-void ParseAndPrintStat(const transport_catalogue::TransportCatalogue& tansport_catalogue, std::string_view request,
+namespace statistic {
+    void ParseAndPrintStat(const transport_catalogue::TransportCatalogue& catalogue, std::string_view request,
                        std::ostream& output);
+
+    void PrintStat(const transport_catalogue::TransportCatalogue& catalogue, std::istream& in, std::ostream& output);
+}
