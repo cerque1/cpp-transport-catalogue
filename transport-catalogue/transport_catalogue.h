@@ -24,7 +24,7 @@ namespace transport_catalogue {
 
 	struct Bus {
 		std::string name;
-		std::deque<const Stop*> stops;
+		std::vector<const Stop*> stops;
 
 		size_t operator()(const Bus* bus) const {
 			return std::hash<std::string>{}(bus->name);

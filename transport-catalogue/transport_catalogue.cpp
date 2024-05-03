@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include <unordered_set>
+#include <vector>
 
 namespace transport_catalogue {
     void TransportCatalogue::AddStop(const std::string& name, geography::Coordinates coord){
@@ -12,7 +13,7 @@ namespace transport_catalogue {
     }
 
     void TransportCatalogue::AddBus(const std::string& name, const std::vector<std::string_view>& stops_name){
-        std::deque<const Stop*> stops;
+        std::vector<const Stop*> stops;
         buses_.push_back({name, {}});
         for(const auto& stop_name : stops_name){
             auto stop = FindStop(stop_name);
