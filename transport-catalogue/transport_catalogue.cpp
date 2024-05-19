@@ -25,11 +25,9 @@ namespace transport_catalogue {
         buses_points_[buses_.back().name] = &buses_.back();
     }
 
-    void TransportCatalogue::AddDistance(const std::string& name, std::vector<std::pair<std::string, int>> stops_to_distance){
-        if(!stops_to_distance.empty()){
-            for(auto stop_to_distance : stops_to_distance){
-                distances_[{name, stop_to_distance.first}] = stop_to_distance.second;
-            }
+    void TransportCatalogue::AddDistance(const std::string& stop_from, const std::string& stop_to, int distance){
+        if(!stop_from.empty() && !stop_from.empty()){
+            distances_[{stop_from, stop_to}] = distance;
         }
     }
 
@@ -47,34 +45,33 @@ namespace transport_catalogue {
         return nullptr;
     }
 
-    int TransportCatalogue::FindDistance(const std::pair<std::string, std::string>& other) const{
-        if(distances_.count(other)){
-            return distances_.at(other);
+    int TransportCatalogue::FindDistance(const std::string& stop_from, const std::string& stop_to) const{
+        if(distances_.count({stop_from, stop_to})){
+            return distances_.at({stop_from, stop_to});
         }
-        if(distances_.count({other.second, other.first})){
-            return distances_.at({other.second, other.first});
+        if(distances_.count({stop_to, stop_from})){
+            return distances_.at({stop_to, stop_from});
         }
         return 0;
     }
 
-    BusInfo TransportCatalogue::GetInfo(std::string_view name) const{
+    BusInfo TransportCatalogue::GetInfo(const Bus* bus) const{
         BusInfo info;
-        const Bus* find_bus = FindBus(name);
-        if(find_bus == nullptr){
+        if(bus == nullptr){
             return BusInfo{};
         }
 
-        info.stops_route = static_cast<int>(find_bus->stops.size());
-        info.unique_stops = static_cast<int>(std::unordered_set<const Stop*>(find_bus->stops.begin(), find_bus->stops.end()).size());
+        info.stops_route = static_cast<int>(bus->stops.size());
+        info.unique_stops = static_cast<int>(std::unordered_set<const Stop*>(bus->stops.begin(), bus->stops.end()).size());
 
         info.length = 0;
-        for(long long unsigned int i = 0; i < find_bus->stops.size() - 1; i++){
-            info.length += FindDistance({find_bus->stops.at(i)->name, find_bus->stops.at(i + 1)->name});
+        for(long long unsigned int i = 0; i < bus->stops.size() - 1; i++){
+            info.length += FindDistance(bus->stops.at(i)->name, bus->stops.at(i + 1)->name);
         }
 
         double length = 0;
         geography::Coordinates last_coord = {};
-        for(const auto i : find_bus->stops){
+        for(const auto i : bus->stops){
             if(last_coord != geography::Coordinates{}){
                 length += geography::ComputeDistance(last_coord, i->coordinates);
             }

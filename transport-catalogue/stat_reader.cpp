@@ -7,12 +7,15 @@ namespace statistic {
     namespace details {
         void PrintBusStat(std::string_view bus_name, const transport_catalogue::TransportCatalogue& catalogue, std::ostream& output){
             output << "Bus " << bus_name << ": ";
-            transport_catalogue::BusInfo info = catalogue.GetInfo(bus_name);
-            if(info == transport_catalogue::BusInfo{}){
+
+            const transport_catalogue::Bus* bus = catalogue.FindBus(bus_name);
+
+            if(bus == nullptr){
                 output << "not found\n";
                 return;
             }
-            
+
+            transport_catalogue::BusInfo info = catalogue.GetInfo(bus);
             output << info.stops_route << " stops on route, " << info.unique_stops << " unique stops, " 
                    << info.length << " route length, " << std::setprecision(6) << info.curvature << " curvature\n";
         }

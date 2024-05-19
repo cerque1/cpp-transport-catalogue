@@ -56,6 +56,11 @@ namespace transport_catalogue {
 		}
 	};
 
+	struct DistanceToStop{
+		std::string stop_name;
+		int distance;
+	};
+
 	class TransportCatalogue {
 	public:
 		TransportCatalogue() = default;
@@ -64,15 +69,15 @@ namespace transport_catalogue {
 
 		void AddBus(const std::string& name, const std::vector<std::string_view>& stops_name);
 
-		void AddDistance(const std::string& name, std::vector<std::pair<std::string, int>> stops_to_distance);
+		void AddDistance(const std::string& stop_from, const std::string& stop_to, int distance);
 
 		const Bus* FindBus(std::string_view name) const;
 
 		const Stop* FindStop(std::string_view name) const;
 
-		int FindDistance(const std::pair<std::string, std::string>& other) const;
+		int FindDistance(const std::string& stop_from, const std::string& stop_to) const;
 
-		BusInfo GetInfo(std::string_view name) const;
+		BusInfo GetInfo(const Bus* bus) const;
 
 		std::vector<std::string_view> GetStopInfo(std::string_view name) const;
 	private:

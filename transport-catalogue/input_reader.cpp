@@ -41,11 +41,11 @@ namespace input_reader {
             return string.substr(start, string.find_last_not_of(' ') + 1 - start);
         }
 
-        std::vector<std::pair<std::string, int>> ParseDistanceToStop(std::string_view str){
+        std::vector<transport_catalogue::DistanceToStop> ParseDistancesToStop(std::string_view str){
             auto comma = str.find_first_of(',');
             str.find_first_of(',', comma + 1) == str.npos ? str = str.substr(str.size()) : str = str.substr(str.find_first_of(',', comma + 1) + 1);
 
-            std::vector<std::pair<std::string, int>> stop_to_distance;
+            std::vector<transport_catalogue::DistanceToStop> stop_to_distance;
             auto str_pos = str.find_first_not_of(" ");
             while(str_pos != str.npos){
                 auto end_num = str.find_first_of("m", str_pos);
@@ -139,7 +139,9 @@ namespace input_reader {
         for(auto command : commands_){
             if(command.command == "Stop"){
                 catalogue.AddStop(command.id, details::ParseCoordinates(command.description));   
-                catalogue.AddDistance(command.id, details::ParseDistanceToStop(command.description));
+                for(auto distance : details::ParseDistancesToStop(command.description)){
+                    catalogue.AddDistance(command.id, distance.stop_name, distance.distance);
+                }
             }
             else if(command.command == "Bus"){
                 catalogue.AddBus(command.id, details::ParseRoute(command.description));
