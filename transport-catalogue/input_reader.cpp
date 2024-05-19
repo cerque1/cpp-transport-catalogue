@@ -1,5 +1,4 @@
 #include "input_reader.h"
-#include "log_duration.h"
 
 #include <algorithm>
 #include <cassert>
@@ -10,7 +9,7 @@
 namespace input_reader {
     namespace details {
         /**
-         * Парсит строку вида "10.123,  -30.1837" и возвращает пару координат (широта, долгота)
+         * Парсит строку вида "10.123,  -30.1837, ..." и возвращает пару координат (широта, долгота)
          */
         geography::Coordinates ParseCoordinates(std::string_view str) {
             static const double nan = std::nan("");
@@ -23,9 +22,10 @@ namespace input_reader {
             }
 
             auto not_space2 = str.find_first_not_of(' ', comma + 1);
+            auto comma2 = str.find(',', not_space2);
 
             double lat = std::stod(std::string(str.substr(not_space, comma - not_space)));
-            double lng = std::stod(std::string(str.substr(not_space2)));
+            double lng = std::stod(std::string(str.substr(not_space2, comma2 - not_space2)));
 
             return {lat, lng};
         }
@@ -39,6 +39,27 @@ namespace input_reader {
                 return {};
             }
             return string.substr(start, string.find_last_not_of(' ') + 1 - start);
+        }
+
+        std::vector<std::pair<std::string, int>> ParseDistanceToStop(std::string_view str){
+            auto comma = str.find_first_of(',');
+            str.find_first_of(',', comma + 1) == str.npos ? str = str.substr(str.size()) : str = str.substr(str.find_first_of(',', comma + 1) + 1);
+
+            std::vector<std::pair<std::string, int>> stop_to_distance;
+            auto str_pos = str.find_first_not_of(" ");
+            while(str_pos != str.npos){
+                auto end_num = str.find_first_of("m", str_pos);
+                int distance = std::stoi(std::string(str.substr(str_pos, end_num - str_pos)));
+
+                auto begin_str = str.find_first_not_of(" ", str.find_first_of("to", end_num) + 2);
+                auto end_str = str.find_first_of(",") == str.npos ? str.find_last_not_of(" ") + 1 : str.find_first_of(",");
+                std::string stop_name = std::string(str.substr(begin_str, end_str - begin_str));
+
+                stop_to_distance.push_back({std::string(Trim(stop_name)), distance});
+                str = str.substr(end_str == str.size() ? end_str : end_str + 1);
+                str_pos = str.find_first_not_of(" ");
+            }
+            return stop_to_distance;
         }
 
         /**
@@ -117,7 +138,8 @@ namespace input_reader {
     void InputReader::ApplyCommands([[maybe_unused]] transport_catalogue::TransportCatalogue& catalogue) const {
         for(auto command : commands_){
             if(command.command == "Stop"){
-                catalogue.AddStop(command.id, details::ParseCoordinates(command.description));
+                catalogue.AddStop(command.id, details::ParseCoordinates(command.description));   
+                catalogue.AddDistance(command.id, details::ParseDistanceToStop(command.description));
             }
             else if(command.command == "Bus"){
                 catalogue.AddBus(command.id, details::ParseRoute(command.description));
@@ -125,7 +147,7 @@ namespace input_reader {
         }
     }
 
-    void Read(std::istream& in, transport_catalogue::TransportCatalogue catalogue){
+    void Read(std::istream& in, transport_catalogue::TransportCatalogue& catalogue){
         int base_request_count;
         in >> base_request_count >> std::ws;
 

@@ -13,7 +13,8 @@ namespace statistic {
                 return;
             }
             
-            output << info.stops_route << " stops on route, " << info.unique_stops << " unique stops, " << std::setprecision(6) << info.length << " route length\n";
+            output << info.stops_route << " stops on route, " << info.unique_stops << " unique stops, " 
+                   << info.length << " route length, " << std::setprecision(6) << info.curvature << " curvature\n";
         }
 
         void PrintStopStat(std::string_view stop_name, const transport_catalogue::TransportCatalogue& catalogue, std::ostream& output){

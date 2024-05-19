@@ -40,5 +40,5 @@ namespace input_reader {
         std::deque<CommandDescription> commands_;
     };
 
-    void Read(std::istream& in, transport_catalogue::TransportCatalogue catalogue);
+    void Read(std::istream& in, transport_catalogue::TransportCatalogue& catalogue);
 }
