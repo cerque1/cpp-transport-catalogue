@@ -7,10 +7,12 @@
 #include <tuple>
 
 #include "geo.h"
+#include "domain.h"
 
 namespace transport_catalogue {
 
 	namespace details{
+		
 		struct StringPairHashes{
 			size_t operator()(std::pair<std::string, std::string> other) const {
 				std::hash<std::string> hasher;
@@ -18,43 +20,6 @@ namespace transport_catalogue {
 			}
 		};
 	}
-
-	struct Stop {
-		std::string name;
-		geography::Coordinates coordinates;
-
-		size_t operator()(const Stop& stop) const {
-			return std::hash<std::string>{}(stop.name);
-		}
-
-		bool operator==(const Stop& stop) const{
-			return name == stop.name && coordinates.lat == stop.coordinates.lat && coordinates.lng == stop.coordinates.lng;
-		}
-	};
-
-	struct Bus {
-		std::string name;
-		std::vector<const Stop*> stops;
-
-		size_t operator()(const Bus* bus) const {
-			return std::hash<std::string>{}(bus->name);
-		}
-
-		bool operator==(const Bus& bus) const{
-			return bus.name == name && std::equal(stops.begin(), stops.end(), bus.stops.begin(), bus.stops.end());
-		}
-	};
-
-	struct BusInfo {
-		int stops_route;
-		int unique_stops;
-		int length; 
-		double curvature;
-
-		bool operator==(const BusInfo& info){
-			return std::tie(info.length, info.stops_route, info.unique_stops) == std::tie(length, stops_route, unique_stops);
-		}
-	};
 
 	struct DistanceToStop{
 		std::string stop_name;
@@ -65,11 +30,13 @@ namespace transport_catalogue {
 	public:
 		TransportCatalogue() = default;
 
-		void AddStop(const std::string& name, geography::Coordinates coord);
+		void AddStop(const std::string& name, geo::Coordinates coord);
 
-		void AddBus(const std::string& name, const std::vector<std::string_view>& stops_name);
+		void AddBus(const std::string& name, const std::vector<std::string_view>& stops_name, bool is_round);
 
 		void AddDistance(const std::string& stop_from, const std::string& stop_to, int distance);
+
+		const std::unordered_map<std::string_view, const Bus*>& GetBusesPoints() const;
 
 		const Bus* FindBus(std::string_view name) const;
 

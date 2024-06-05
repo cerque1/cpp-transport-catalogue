@@ -1,15 +1,17 @@
-#include <iostream>
-#include <string>
-
+#include "json_reader.h"
 #include "transport_catalogue.h"
-#include "input_reader.h"
-#include "stat_reader.h"
+#include "request_handler.h"
+#include "map_renderer.h"
 
-using namespace std;
+#include <iostream>
 
 int main() {
     transport_catalogue::TransportCatalogue catalogue;
-    
-    input_reader::Read(cin, catalogue);
-    statistic::PrintStat(catalogue, cin, cout);
+    renderer::MapRenderer renderer;
+
+    RequestHandler requestHandler(catalogue, renderer);
+    json_reader::JsonReader json_reader_(requestHandler);
+    json_reader_.ReadDataBaseRequest(std::cin);
+    json_reader_.ReadRenderSettings();
+    json_reader_.StatRequestHandle(std::cout);
 }
