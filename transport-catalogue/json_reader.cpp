@@ -2,6 +2,7 @@
 #include "json.h"
 #include "domain.h"
 #include "geo.h"
+#include "json_builder.h"
 
 #include <algorithm>
 #include <string_view>
@@ -18,7 +19,7 @@ namespace json_reader{
             std::string name = stop_parameters.at("name").AsString();
             requestHandler.AddStop(name, coord);
 
-            Dict stops_to_distance = stop_parameters.at("road_distances").AsMap();
+            Dict stops_to_distance = stop_parameters.at("road_distances").AsDict();
             for(auto [stop, distance] : stops_to_distance){
                 requestHandler.AddDistance(name, stop, distance.AsInt());
             }
@@ -36,12 +37,9 @@ namespace json_reader{
 
 
         void GetStopInfo(Array& out, const Dict& request_info, const RequestHandler& requestHandler){
-            Dict dict_answer;
-            dict_answer["request_id"] = request_info.at("id");
             std::string name = request_info.at("name").AsString();
             if(requestHandler.FindStop(name) == nullptr){
-                dict_answer["error_message"] = "not found";
-                out.emplace_back(dict_answer);
+                out.emplace_back(Builder{}.StartDict().Key("request_id").Value(request_info.at("id")).Key("error_message").Value("not found").EndDict().Build());
                 return;
             }
 
@@ -52,47 +50,37 @@ namespace json_reader{
             for(auto i : buses_to_stop){
                 buses.push_back(Node{std::string(i)});
             }
-            dict_answer["buses"] = Node{buses};
-            out.emplace_back(dict_answer);
+            out.emplace_back(Builder{}.StartDict().Key("request_id").Value(request_info.at("id")).Key("buses").Value(Node{buses}).EndDict().Build());
         }
 
         void GetBusInfo(Array& out, const Dict& request_info, const RequestHandler& requestHandler){
-            Dict dict_answer;
-            dict_answer["request_id"] = request_info.at("id");
             if(requestHandler.FindBus(request_info.at("name").AsString()) == nullptr){
-                dict_answer["error_message"] = Node{"not found"};
-                out.emplace_back(dict_answer);
+                out.emplace_back(Builder{}.StartDict().Key("request_id").Value(request_info.at("id")).Key("error_message").Value("not found").EndDict().Build());
                 return;
             } 
 
             BusInfo bus_info = requestHandler.GetBusStat(request_info.at("name").AsString());
-
-            dict_answer["curvature"] = Node{bus_info.curvature};
-            dict_answer["route_length"] = Node{bus_info.length};
-            dict_answer["stop_count"] = Node{bus_info.stops_route};
-            dict_answer["unique_stop_count"] = Node{bus_info.unique_stops};
-            out.emplace_back(dict_answer);
+            out.emplace_back(Builder{}.StartDict().Key("request_id").Value(request_info.at("id"))
+                                                  .Key("curvature").Value(Node{bus_info.curvature})
+                                                  .Key("route_length").Value(Node{bus_info.length})
+                                                  .Key("stop_count").Value(Node{bus_info.stops_route})
+                                                  .Key("unique_stop_count").Value(Node{bus_info.unique_stops}).EndDict().Build());
         }
 
         void GetMap(Array& out, const RequestHandler& requestHandler_, int request_id){
             std::stringstream result;
-            result << "\"";
             result << requestHandler_.RenderMap().str();
-            result << "\"";
-            Dict dict_answer;
-            dict_answer["request_id"] = request_id;
-            dict_answer["map"] = json::Load(result).GetRoot().AsString();
-            out.emplace_back(dict_answer);
+            out.emplace_back(Builder{}.StartDict().Key("request_id").Value(request_id).Key("map").Value(result.str()).EndDict().Build());
         }
 
         //Обрабатывает запросы к базе данных
         void DataRequestHandle(const Array& data_requests, RequestHandler& requestHandler){
             for(size_t i = 0; i < data_requests.size(); i++){
-                if(data_requests.at(i).AsMap().at("type") == "Stop"){
-                    ReadStop(data_requests.at(i).AsMap(), requestHandler);
+                if(data_requests.at(i).AsDict().at("type") == "Stop"){
+                    ReadStop(data_requests.at(i).AsDict(), requestHandler);
                 }
-                else if(data_requests.at(i).AsMap().at("type") == "Bus"){
-                    ReadBus(data_requests.at(i).AsMap(), requestHandler);
+                else if(data_requests.at(i).AsDict().at("type") == "Bus"){
+                    ReadBus(data_requests.at(i).AsDict(), requestHandler);
                 }
             }
         }
@@ -100,14 +88,14 @@ namespace json_reader{
         //Обрабатывает запросы на получение статистики
         void StatRequestHandle(Array& out, const Array& stat_requests, const RequestHandler& requestHandler){
             for(size_t i = 0; i < stat_requests.size(); i++){
-                if(stat_requests.at(i).AsMap().at("type") == "Stop"){
-                    GetStopInfo(out, stat_requests.at(i).AsMap(), requestHandler);
+                if(stat_requests.at(i).AsDict().at("type") == "Stop"){
+                    GetStopInfo(out, stat_requests.at(i).AsDict(), requestHandler);
                 }
-                else if(stat_requests.at(i).AsMap().at("type") == "Bus"){
-                    GetBusInfo(out, stat_requests.at(i).AsMap(), requestHandler);
+                else if(stat_requests.at(i).AsDict().at("type") == "Bus"){
+                    GetBusInfo(out, stat_requests.at(i).AsDict(), requestHandler);
                 }
-                else if(stat_requests.at(i).AsMap().at("type") == "Map"){
-                    GetMap(out, requestHandler, stat_requests.at(i).AsMap().at("id").AsInt());
+                else if(stat_requests.at(i).AsDict().at("type") == "Map"){
+                    GetMap(out, requestHandler, stat_requests.at(i).AsDict().at("id").AsInt());
                 }
             }
         }
@@ -116,7 +104,7 @@ namespace json_reader{
             size_t end = static_cast<size_t>(requests.size());
             for(size_t i = 0; i < end; i++){
                 for(size_t j = 0; j < end - 1; j++){
-                    if(requests[j].AsMap().at("type").AsString() == "Bus" && requests[j + 1].AsMap().at("type").AsString() == "Stop"){
+                    if(requests[j].AsDict().at("type").AsString() == "Bus" && requests[j + 1].AsDict().at("type").AsString() == "Stop"){
                         std::swap(requests[j], requests[j + 1]);
                     }
                 }
@@ -147,9 +135,9 @@ namespace json_reader{
 
     //Вызывает обработчики определенных запросов
     void JsonReader::ReadDataBaseRequest(std::istream& in){
-        Dict requests = Load(in).GetRoot().AsMap();
+        Dict requests = Load(in).GetRoot().AsDict();
         stat_requests = requests.at("stat_requests").AsArray();
-        render_settings = requests.at("render_settings").AsMap();
+        render_settings = requests.at("render_settings").AsDict();
 
         if(requests.count("base_requests")){
             Array& value_as_array = const_cast<Array&>(requests.at("base_requests").AsArray());
