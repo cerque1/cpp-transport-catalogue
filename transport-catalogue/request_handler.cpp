@@ -1,9 +1,10 @@
 #include <sstream>
 
+#include "transport_router.h"
 #include "request_handler.h"
 #include "domain.h"
 
-RequestHandler::RequestHandler(transport_catalogue::TransportCatalogue& catalogue, renderer::MapRenderer& renderer) : db_(catalogue), renderer_(renderer){}
+RequestHandler::RequestHandler(transport_catalogue::TransportCatalogue& catalogue, renderer::MapRenderer& renderer, transport_router::TransportRouter& router) : db_(catalogue), renderer_(renderer), router_(router){}
 
 void RequestHandler::AddStop(const std::string& name, geo::Coordinates coord){
     db_.AddStop(name, coord);
@@ -71,14 +72,12 @@ std::stringstream RequestHandler::RenderMap() const{
 
 void RequestHandler::CreateRoute(int bus_wait_time, double bus_velocity){
     router_.SetRoutingSettings(bus_wait_time, bus_velocity);
-    router_.CreateGraph(db_);
+    router_.CreateGraph();
 }
 
 transport_router::RouteInfo RequestHandler::GetRoute(std::string_view from, std::string_view to) const{
     if(from == to){
-        return transport_router::RouteInfo{0, json::Array{}};
+        return transport_router::RouteInfo{0, {}};
     }
-    size_t from_index = static_cast<size_t>(db_.FindStopIndex(from).value());
-    size_t to_index = static_cast<size_t>(db_.FindStopIndex(to).value());
-    return router_.GetRoute(from_index, to_index, db_);
+    return router_.GetRoute(from, to);
 }

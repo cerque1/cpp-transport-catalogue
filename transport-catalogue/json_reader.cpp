@@ -81,9 +81,27 @@ namespace json_reader{
                                                     .Key("request_id").Value(request_info.at("id")).EndDict().Build());
             }
             else{
+                json::Array wait_items;
+                for(auto item : items){
+                    if(std::holds_alternative<transport_router::WaitBusInfo>(item)){
+                        auto wait_item = std::get<transport_router::WaitBusInfo>(item);
+                        wait_items.emplace_back(Builder{}.StartDict()
+                                                                    .Key("type").Value(wait_item.type_)
+                                                                    .Key("time").Value(wait_item.time_)
+                                                                    .Key("span_count").Value(wait_item.span_count_)
+                                                                    .Key("bus").Value(wait_item.bus_name_).EndDict().Build());
+                    }
+                    else if(std::holds_alternative<transport_router::WaitStopInfo>(item)){
+                        auto wait_item = std::get<transport_router::WaitStopInfo>(item);
+                        wait_items.emplace_back(Builder{}.StartDict()
+                                                                    .Key("type").Value(wait_item.type_)
+                                                                    .Key("time").Value(wait_item.time_)
+                                                                    .Key("stop_name").Value(wait_item.stop_name_).EndDict().Build());
+                    }
+                }
                 out.emplace_back(Builder{}.StartDict()
                                                     .Key("total_time").Value(total_time.value())
-                                                    .Key("items").Value(items)
+                                                    .Key("items").Value(wait_items)
                                                     .Key("request_id").Value(request_info.at("id")).EndDict().Build());
             }
         }

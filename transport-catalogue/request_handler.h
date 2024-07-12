@@ -9,7 +9,7 @@
 
 class RequestHandler {
 public:
-    RequestHandler(transport_catalogue::TransportCatalogue&, renderer::MapRenderer& renderer);
+    RequestHandler(transport_catalogue::TransportCatalogue&, renderer::MapRenderer& renderer, transport_router::TransportRouter& router);
 
     void AddStop(const std::string& name, geo::Coordinates coord);
     void AddBus(const std::string &name, const std::vector<std::string_view> &stops_name, bool is_round);
@@ -40,5 +40,5 @@ private:
     // RequestHandler использует агрегацию объектов "Транспортный Справочник" и "Визуализатор Карты"
     transport_catalogue::TransportCatalogue& db_;
     renderer::MapRenderer& renderer_;
-    transport_router::TransportRouter router_;
+    transport_router::TransportRouter& router_;
 };

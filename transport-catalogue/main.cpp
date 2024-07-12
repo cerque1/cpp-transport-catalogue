@@ -9,8 +9,9 @@
 int main() {
     transport_catalogue::TransportCatalogue catalogue;
     renderer::MapRenderer renderer;
+    transport_router::TransportRouter router(catalogue);
 
-    RequestHandler requestHandler(catalogue, renderer);
+    RequestHandler requestHandler(catalogue, renderer, router);
     json_reader::JsonReader json_reader_(requestHandler);
     json_reader_.ReadRequests(std::cin);
     json_reader_.HandleBaseRequests();
