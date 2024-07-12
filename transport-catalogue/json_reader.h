@@ -12,13 +12,17 @@ namespace json_reader{
     public:
         JsonReader(RequestHandler& requestHandler);
 
-        void ReadDataBaseRequest(std::istream& in);
-        void ReadRenderSettings();
-        void StatRequestHandle(std::ostream& out);
+        void ReadRequests(std::istream& in);
+        void HandleBaseRequests();
+        void HandleRoutingSettings();
+        void HandleRenderSettings();
+        void HandleStatRequest(std::ostream& out);
 
     private:
         RequestHandler& requestHandler_;
+        json::Array base_requests;
         json::Array stat_requests;
         json::Dict render_settings;
+        json::Dict routing_settings;
     };
 }

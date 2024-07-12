@@ -73,6 +73,21 @@ namespace json_reader{
             out.emplace_back(Builder{}.StartDict().Key("request_id").Value(request_id).Key("map").Value(result.str()).EndDict().Build());
         }
 
+        void GetRoute(Array& out, const Dict& request_info, const RequestHandler& requestHandler){
+            auto [total_time, items] = requestHandler.GetRoute(request_info.at("from").AsString(), request_info.at("to").AsString());
+            if(!total_time.has_value() && items.empty()){
+                out.emplace_back(Builder{}.StartDict()
+                                                    .Key("error_message").Value("not found")
+                                                    .Key("request_id").Value(request_info.at("id")).EndDict().Build());
+            }
+            else{
+                out.emplace_back(Builder{}.StartDict()
+                                                    .Key("total_time").Value(total_time.value())
+                                                    .Key("items").Value(items)
+                                                    .Key("request_id").Value(request_info.at("id")).EndDict().Build());
+            }
+        }
+
         //Обрабатывает запросы к базе данных
         void DataRequestHandle(const Array& data_requests, RequestHandler& requestHandler){
             for(size_t i = 0; i < data_requests.size(); i++){
@@ -97,7 +112,11 @@ namespace json_reader{
                 else if(stat_requests.at(i).AsDict().at("type") == "Map"){
                     GetMap(out, requestHandler, stat_requests.at(i).AsDict().at("id").AsInt());
                 }
+                else if(stat_requests.at(i).AsDict().at("type") == "Route"){
+                    GetRoute(out, stat_requests.at(i).AsDict(), requestHandler);
+                }
             }
+
         }
 
         void SortRequest(Array& requests){
@@ -134,19 +153,30 @@ namespace json_reader{
     JsonReader::JsonReader(RequestHandler& requestHandler) : requestHandler_(requestHandler){}
 
     //Вызывает обработчики определенных запросов
-    void JsonReader::ReadDataBaseRequest(std::istream& in){
+    void JsonReader::ReadRequests(std::istream& in){
         Dict requests = Load(in).GetRoot().AsDict();
+        base_requests = requests.at("base_requests").AsArray();
         stat_requests = requests.at("stat_requests").AsArray();
+        routing_settings = requests.at("routing_settings").AsDict();
         render_settings = requests.at("render_settings").AsDict();
+    }
 
-        if(requests.count("base_requests")){
-            Array& value_as_array = const_cast<Array&>(requests.at("base_requests").AsArray());
-            details::SortRequest(value_as_array);
-            details::DataRequestHandle(value_as_array, requestHandler_);
+    void JsonReader::HandleBaseRequests(){
+        Array& value_as_array = const_cast<Array&>(base_requests);
+        details::SortRequest(value_as_array);
+        details::DataRequestHandle(value_as_array, requestHandler_);
+        base_requests.clear();
+    }
+
+    void JsonReader::HandleRoutingSettings(){
+        if(!routing_settings.empty()){
+            int bus_wait_time = routing_settings["bus_wait_time"].AsInt();
+            double bus_velocity = routing_settings["bus_velocity"].AsDouble();
+            requestHandler_.CreateRoute(bus_wait_time, bus_velocity);
         }
     }
 
-    void JsonReader::ReadRenderSettings(){
+    void JsonReader::HandleRenderSettings(){
         if(!render_settings.empty()){
             double width = render_settings["width"].AsDouble();
             double height = render_settings["height"].AsDouble();
@@ -175,15 +205,17 @@ namespace json_reader{
 
             requestHandler_.SetRenderSettings(width, height, padding, line_width_, stop_radius_, bus_label_font_size_, bus_label_offset_, 
                                            stop_label_font_size_, stop_label_offset_, underlayer_color_, underlayer_width_, std::move(color_palette_));
+            render_settings.clear();
         }
     }
 
-    void JsonReader::StatRequestHandle(std::ostream& out){
+    void JsonReader::HandleStatRequest(std::ostream& out){
         Array answer;
         if(!stat_requests.empty()){
             details::StatRequestHandle(answer, stat_requests, requestHandler_);
         }
 
         Print(Document{answer}, out);
+        stat_requests.clear();
     }
 }

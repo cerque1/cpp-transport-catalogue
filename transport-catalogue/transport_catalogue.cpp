@@ -5,6 +5,41 @@
 #include <unordered_set>
 
 namespace transport_catalogue {
+    
+    BusSectionInfo TransportCatalogue::FindBusNameByTwoStopsAndDistance(std::string_view first_stop, std::string_view second_stop, double distance) const{
+        const double EPSILON = 1e-6;
+        for(auto bus : buses_){
+            std::string last_stop_name;
+            double sum_distance = 0;
+            int count_stops = 0;
+
+            for(auto begin_ = find(bus.stops.begin(), bus.stops.end(), FindStop(first_stop)); begin_ != bus.stops.end(); begin_ =  find(next(begin_), bus.stops.end(), FindStop(first_stop))){
+                for(auto end_ = find(bus.stops.begin(), bus.stops.end(), FindStop(second_stop)); end_ != bus.stops.end(); end_ = find(next(end_), bus.stops.end(), FindStop(second_stop))){
+                    for(auto iter = begin_; iter != next(end_, 1); iter++){
+                        if(!last_stop_name.empty()){
+                            sum_distance += FindDistance(last_stop_name, (*iter)->name);
+                            if(sum_distance > distance){
+                                break;
+                            }
+                            count_stops++;
+                        }
+                        last_stop_name = (*iter)->name;
+                        if(next(iter, 1) != next(end_, 1) && next(iter, 1) == bus.stops.end()){
+                            iter = next(bus.stops.begin(), -1);
+                            if(bus.is_round){
+                                count_stops--;
+                            }
+                        }
+                    }
+                    if(std::abs(distance - sum_distance) < EPSILON){
+                        return BusSectionInfo{bus.name, count_stops};
+                    }
+                }
+            }
+        }
+        return BusSectionInfo{std::string{}, 0};
+    }
+
     void TransportCatalogue::AddStop(const std::string& name, geo::Coordinates coord){
         stops_.push_back({name, std::move(coord)});
         stops_points_[stops_.back().name] = &stops_.back();
@@ -47,6 +82,21 @@ namespace transport_catalogue {
             return stops_points_.at(name);
         }
         return nullptr;
+    }
+
+    std::optional<int> TransportCatalogue::FindStopIndex(std::string_view name) const{
+        int index = 0;
+        for(auto stop : stops_){
+            if(stop.name == name){
+                return index;
+            }
+            index++;
+        }
+        return std::nullopt;
+    }
+
+    const std::vector<std::string_view>& TransportCatalogue::FindStopToBus(std::string_view stop_name) const{
+        return stop_to_buses_.at(stop_name);
     }
 
     int TransportCatalogue::FindDistance(const std::string& stop_from, const std::string& stop_to) const{
@@ -99,5 +149,17 @@ namespace transport_catalogue {
             return stop_to_buses_.at(name);
         }
         return {};
+    }
+
+    size_t TransportCatalogue::GetStopsCount() const{
+        return stops_.size();
+    }
+
+    const std::deque<Stop>& TransportCatalogue::GetStops() const{
+        return stops_;
+    }
+
+    const std::deque<Bus>& TransportCatalogue::GetBuses() const{
+        return buses_;
     }
 }

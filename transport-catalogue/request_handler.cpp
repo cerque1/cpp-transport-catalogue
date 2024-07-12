@@ -1,14 +1,7 @@
-#include "request_handler.h"
-
-/*
- * Здесь можно было бы разместить код обработчика запросов к базе, содержащего логику, которую не
- * хотелось бы помещать ни в transport_catalogue, ни в json reader.
- *
- * Если вы затрудняетесь выбрать, что можно было бы поместить в этот файл,
- * можете оставить его пустым.
- */
-
 #include <sstream>
+
+#include "request_handler.h"
+#include "domain.h"
 
 RequestHandler::RequestHandler(transport_catalogue::TransportCatalogue& catalogue, renderer::MapRenderer& renderer) : db_(catalogue), renderer_(renderer){}
 
@@ -74,4 +67,18 @@ std::stringstream RequestHandler::RenderMap() const{
     doc.Render(ss);
 
     return ss;
+}
+
+void RequestHandler::CreateRoute(int bus_wait_time, double bus_velocity){
+    router_.SetRoutingSettings(bus_wait_time, bus_velocity);
+    router_.CreateGraph(db_);
+}
+
+transport_router::RouteInfo RequestHandler::GetRoute(std::string_view from, std::string_view to) const{
+    if(from == to){
+        return transport_router::RouteInfo{0, json::Array{}};
+    }
+    size_t from_index = static_cast<size_t>(db_.FindStopIndex(from).value());
+    size_t to_index = static_cast<size_t>(db_.FindStopIndex(to).value());
+    return router_.GetRoute(from_index, to_index, db_);
 }
